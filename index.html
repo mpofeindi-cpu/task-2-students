@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محلل درجات الطلاب المتعثرين</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { background: #f0f4ff; font-family: 'Segoe UI', Tahoma, sans-serif; }
+  .card { border-radius: 18px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); border: none; }
+  h1 { color: #1e3a8a; font-weight: 800; }
+  .btn-add { background: #2563eb; color: white; font-weight: 700; border-radius: 12px; padding: 10px; }
+  .btn-add:hover { background: #1d4ed8; color: white; }
+  table th { background: #1e3a8a !important; color: white !important; }
+  .badge-pass { background: #dcfce7; color: #166534; }
+</style>
+</head>
+<body>
+
+<div class="container py-4">
+  <div class="text-center mb-4">
+    <h1>محلل درجات الطلاب المتعثرين</h1>
+    <p class="text-muted">أدخل رقم الطالب والمتوسط، وسيتم عرض الطلاب المتعثرين من 40 إلى 49 مع إضافة 5 درجات رأفة</p>
+  </div>
+
+  <!-- Form -->
+  <div class="card p-4 mb-4">
+    <h4 class="mb-3">إدخال بيانات الطالب</h4>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">رقم الطالب (ID)</label>
+        <input type="number" id="studentId" class="form-control form-control-lg" placeholder="مثال: 101">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">متوسط الدرجات (Average)</label>
+        <input type="number" id="studentAvg" class="form-control form-control-lg" placeholder="من 0 إلى 100" min="0" max="100">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-add w-100" onclick="addStudent()">+ إضافة</button>
+      </div>
+    </div>
+    <p id="error" class="text-danger mt-2"></p>
+  </div>
+
+  <!-- جدول كل الطلاب -->
+  <div class="card p-4 mb-4">
+    <h4 class="mb-3">قائمة الطلاب</h4>
+    <div class="table-responsive">
+      <table class="table table-bordered text-center align-middle">
+        <thead>
+          <tr>
+            <th>رقم الطالب</th>
+            <th>المتوسط الأصلي</th>
+            <th>الحالة</th>
+            <th>حذف</th>
+          </tr>
+        </thead>
+        <tbody id="allStudentsTable">
+          <tr><td colspan="4" class="text-muted">لا توجد بيانات بعد</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- النتائج: المتعثرين -->
+  <div class="card p-4">
+    <h4 class="mb-1">الطلاب المتعثرين (من 40 إلى 49)</h4>
+    <p class="text-muted">يتم إضافة 5 درجات رأفة، بشرط ألا يتجاوز المتوسط النهائي 50</p>
+    <div class="table-responsive">
+      <table class="table table-bordered text-center align-middle">
+        <thead>
+          <tr>
+            <th>رقم الطالب</th>
+            <th>المتوسط قبل الرأفة</th>
+            <th>المتوسط بعد الرأفة (+5)</th>
+            <th>النتيجة</th>
+          </tr>
+        </thead>
+        <tbody id="strugglingTable">
+          <tr><td colspan="4" class="text-muted">لا يوجد طلاب متعثرين بعد</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="alert alert-info mt-3" id="summary">عدد الطلاب المتعثرين: 0</div>
+  </div>
+</div>
+
+<script>
+let students = [];
+
+function addStudent() {
+  let id = document.getElementById('studentId').value;
+  let avg = parseFloat(document.getElementById('studentAvg').value);
+  let error = document.getElementById('error');
+
+  if (id === "" || isNaN(avg)) {
+    error.textContent = "من فضلك أدخل رقم الطالب والمتوسط";
+    return;
+  }
+  if (avg < 0 || avg > 100) {
+    error.textContent = "المتوسط لازم يكون من 0 إلى 100";
+    return;
+  }
+
+  error.textContent = "";
+  students.push({ id: id, avg: avg });
+  document.getElementById('studentId').value = "";
+  document.getElementById('studentAvg').value = "";
+  render();
+}
+
+function deleteStudent(index) {
+  students.splice(index, 1);
+  render();
+}
+
+function render() {
+  // جدول كل الطلاب
+  let allTable = document.getElementById('allStudentsTable');
+  if (students.length === 0) {
+    allTable.innerHTML = '<tr><td colspan="4" class="text-muted">لا توجد بيانات بعد</td></tr>';
+  } else {
+    allTable.innerHTML = students.map((s, i) => {
+      let status = s.avg >= 50 ? "ناجح" : (s.avg >= 40 ? "متعثر" : "راسب");
+      let color = s.avg >= 50 ? "text-success" : (s.avg >= 40 ? "text-warning fw-bold" : "text-danger");
+      return `<tr>
+        <td>${s.id}</td>
+        <td>${s.avg}</td>
+        <td class="${color}">${status}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="deleteStudent(${i})">حذف</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // جدول المتعثرين فقط 40 - 49
+  let struggling = students.filter(s => s.avg >= 40 && s.avg <= 49);
+  let strTable = document.getElementById('strugglingTable');
+  if (struggling.length === 0) {
+    strTable.innerHTML = '<tr><td colspan="4" class="text-muted">لا يوجد طلاب متعثرين بعد</td></tr>';
+  } else {
+    strTable.innerHTML = struggling.map(s => {
+      let newAvg = Math.min(s.avg + 5, 50); // لا يتجاوز 50
+      return `<tr>
+        <td>${s.id}</td>
+        <td>${s.avg}</td>
+        <td><b>${newAvg}</b></td>
+        <td><span class="badge badge-pass p-2">تمت إضافة الرأفة - ناجح</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('summary').textContent = `عدد الطلاب المتعثرين: ${struggling.length} | إجمالي الطلاب: ${students.length}`;
+}
+</script>
+</body>
+</html>
